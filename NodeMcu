@@ -1,0 +1,77 @@
+#include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
+
+const char* ssid     = "your wifi name";
+const char* password = "your wifi password";
+
+const char* host = "smarthelmetserver.onrender.com"; // only google.com not https://google.com
+int value;
+
+
+void setup() {
+  Serial.begin(115200);
+  delay(5000);
+
+  // pinMode(2, INPUT); // initialize digital pin 2 as an input
+   
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(5000);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");  
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  delay(5000);
+
+  Serial.print("connecting to ");
+  Serial.println(host);
+
+  // Use WiFiClient class to create TCP connections
+  WiFiClientSecure client;
+  const int httpPort = 443; // 80 is for HTTP / 443 is for HTTPS!
+  
+  client.setInsecure(); // this is the magical line that makes everything work
+  
+  if (!client.connect(host, httpPort)) { //works!
+    Serial.println("connection failed");
+    return;
+  }
+   String jsonData;
+  value = digitalRead(2); // read value on pin 2                                                       
+  Serial.println(value); // print value on serial terminal
+  if(value==0){ //close send true
+    // Make HTTP request -- true and send the request
+    jsonData = "{\"start\": true}"; 
+    Serial.println("sending true");
+  } else{ //far send false
+    // Make HTTP request -- false and send the request
+    jsonData = "{\"start\": false}";
+    Serial.println("sending false"); 
+  }
+
+  // Prepare JSON data
+  // String jsonData = "{\"start\": true}" ;
+     // Modify as needed
+    client.print(String("POST /api/post HTTP/1.1\r\n") +
+                 "Host: " + host + "\r\n" +
+                 "Content-Type: application/json\r\n" +
+                 "Content-Length: " + String(jsonData.length()) + "\r\n" +
+                 "\r\n" +
+                 jsonData);
+
+
+  Serial.println();
+  Serial.println("closing connection");
+}
